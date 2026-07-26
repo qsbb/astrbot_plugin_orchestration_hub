@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>凝心溯溪-枢</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header><div><small>凝心溯溪系列</small><h1>服务中枢</h1></div><button id="refresh" type="button">刷新</button></header>
+  <main>
+    <section class="metrics" aria-label="服务中枢指标">
+      <article><span>服务</span><strong id="services">-</strong></article>
+      <article><span>实例</span><strong id="instances">-</strong></article>
+      <article><span>注册表版本</span><strong id="revision">-</strong></article>
+    </section>
+    <section><h2>已注册服务</h2><p id="error" role="alert"></p><div id="service-list" class="list"></div></section>
+    <section><h2>近期调用</h2><div id="call-list" class="list"></div></section>
+  </main>
+  <script src="/api/plugin/page/bridge-sdk.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

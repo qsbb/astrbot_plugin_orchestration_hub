@@ -1,0 +1,12 @@
+{
+  "ENABLED": {"type": "bool", "description": "是否启用服务中枢", "default": true},
+  "DEFAULT_CALL_TIMEOUT_MS": {"type": "int", "description": "operation 未声明超时时使用的默认毫秒数", "default": 10000},
+  "MAX_INLINE_PAYLOAD_BYTES": {"type": "int", "description": "请求和响应内联载荷最大字节数", "default": 262144},
+  "GLOBAL_MAX_INFLIGHT": {"type": "int", "description": "全局最大在途调用数", "default": 128},
+  "DEFAULT_SERVICE_MAX_INFLIGHT": {"type": "int", "description": "单实例默认并发上限", "default": 16},
+  "DEFAULT_QUEUE_SIZE": {"type": "int", "description": "单实例默认等待队列上限", "default": 32},
+  "LEASE_SECONDS": {"type": "int", "description": "服务注册租约秒数", "default": 60},
+  "LEASE_SWEEP_SECONDS": {"type": "int", "description": "租约失效探测间隔秒数", "default": 5},
+  "DRAIN_GRACE_SECONDS": {"type": "int", "description": "终止或排空等待在途调用的秒数", "default": 5},
+  "STRICT_SCHEMA_VALIDATION": {"type": "bool", "description": "是否严格校验 JSON Schema 输入输出", "default": true}
+}
