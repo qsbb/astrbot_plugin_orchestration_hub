@@ -36,9 +36,15 @@ class OrchestrationHubPlugin(Star):
         self.resolver = ServiceResolver(self.registry, self.policy, self.invocation)
         self.adapter = AstrBotAdapter(context, PLUGIN_ID)
         self.store = DataStore(self.adapter.data_dir)
-        self.pages = PagesManager(self.registry, self.telemetry, self.store)
+        self.pages = PagesManager(
+            self.registry,
+            self.telemetry,
+            self.store,
+            registry_provider=self._current_registry,
+        )
         self.page_registered = self.pages.register(self.adapter)
         self._terminated = False
+        self._lifecycle_lock = asyncio.Lock()
         self._lease_task: asyncio.Task | None = None
 
     def _config(self, key: str, default: Any) -> Any:
@@ -55,10 +61,18 @@ class OrchestrationHubPlugin(Star):
             return None
         return instance
 
+    def _current_registry(self) -> ServiceRegistry:
+        current = self.get_current()
+        return current.registry if current is not None else self.registry
+
     async def initialize(self) -> None:
-        await self.store.open()
-        self._lease_task = asyncio.create_task(self._lease_supervisor())
-        OrchestrationHubPlugin._current_ref = weakref.ref(self)
+        async with self._lifecycle_lock:
+            if self._terminated:
+                return
+            await self.store.open()
+            if self._lease_task is None or self._lease_task.done():
+                self._lease_task = asyncio.create_task(self._lease_supervisor())
+            OrchestrationHubPlugin._current_ref = weakref.ref(self)
         logger.info("[orchestration-hub] v%s loaded; pages=%s", __version__, self.page_registered)
 
     async def _lease_supervisor(self) -> None:
@@ -98,15 +112,17 @@ class OrchestrationHubPlugin(Star):
         yield event.plain_result(f"能力诊断\nPages: {'可用' if report['pages']['available'] else '降级'}\nRegistry: {'可用' if report['registry_accepting'] else '已停止'}")
 
     async def terminate(self) -> None:
-        if self._terminated:
-            return
-        self._terminated = True
-        await self.registry.stop_accepting()
-        await self.registry.wait_for_idle(float(self._config("DRAIN_GRACE_SECONDS", 5)))
-        if self._lease_task:
-            self._lease_task.cancel()
-            await asyncio.gather(self._lease_task, return_exceptions=True)
+        async with self._lifecycle_lock:
+            if self._terminated:
+                return
+            self._terminated = True
+            await self.registry.stop_accepting()
+            lease_task = self._lease_task
             self._lease_task = None
+        if lease_task is not None and lease_task is not asyncio.current_task():
+            lease_task.cancel()
+            await asyncio.gather(lease_task, return_exceptions=True)
+        await self.registry.wait_for_idle(float(self._config("DRAIN_GRACE_SECONDS", 5)))
         await self.registry.clear()
         self.invocation.clear()
         await self.store.append_audit({"action": "terminate", "result": "ok", "revision": self.registry.revision})

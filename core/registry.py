@@ -38,6 +38,11 @@ class ServiceRegistry:
         self.revision = 0
         self._accepting = True
 
+    @property
+    def accepting(self) -> bool:
+        """供同进程发现逻辑快速排除已进入停止阶段的 Registry。"""
+        return self._accepting
+
     async def register(self, descriptor: CapabilityDescriptor, handler: Handler, lease_seconds: float | None = None) -> RegistrationToken:
         descriptor.validate()
         if not callable(handler):

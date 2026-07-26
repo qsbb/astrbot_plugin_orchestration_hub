@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 
 from ..adapters import AstrBotAdapter
+from ..core.models import CapabilityDescriptor, OperationDescriptor
 from ..core.registry import ServiceRegistry
 from ..core.telemetry import Telemetry
 from ..pages_manager import PagesManager
@@ -36,6 +37,42 @@ def test_adapter_uses_verified_local_context_shape():
             "instances": 0,
             "revision": 0,
         }
+
+    asyncio.run(scenario())
+
+
+def test_pages_hot_reload_reads_current_registry_and_statistics():
+    async def scenario():
+        old_registry = ServiceRegistry()
+        current = {"registry": old_registry}
+        pages = PagesManager(
+            old_registry,
+            Telemetry(),
+            registry_provider=lambda: current["registry"],
+        )
+        new_registry = ServiceRegistry()
+        descriptor = CapabilityDescriptor(
+            "relationship.snapshot",
+            "1.0.0",
+            "astrbot_plugin_relationship",
+            {"read": OperationDescriptor("read")},
+        )
+        token = await new_registry.register(
+            descriptor, lambda payload, context: asyncio.sleep(0, result=payload)
+        )
+        await new_registry.mark_ready(token)
+        current["registry"] = new_registry
+
+        overview = await pages.overview()
+        services = await pages.services()
+        assert overview == {
+            "success": True,
+            "services": 1,
+            "instances": 1,
+            "revision": 2,
+        }
+        assert services["services"][0]["service"] == "relationship.snapshot"
+        assert services["services"][0]["state"] == "READY"
 
     asyncio.run(scenario())
 
