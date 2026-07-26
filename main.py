@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import weakref
 from typing import Any
 
 from astrbot.api import logger
@@ -21,6 +22,8 @@ __version__ = "0.1.0"
 @register(PLUGIN_ID, "Justice-ocr", "凝心溯溪系列服务中枢模块：同进程服务注册、发现与异步调用", __version__)
 class OrchestrationHubPlugin(Star):
     """只负责装配、命令入口和清理；服务语义位于 core。"""
+
+    _current_ref: weakref.ReferenceType["OrchestrationHubPlugin"] | None = None
 
     def __init__(self, context: Context, config: Any = None) -> None:
         super().__init__(context)
@@ -44,9 +47,18 @@ class OrchestrationHubPlugin(Star):
         getter = getattr(self.config, "get", None)
         return getter(key, default) if callable(getter) else default
 
+    @classmethod
+    def get_current(cls) -> "OrchestrationHubPlugin | None":
+        """返回已完成初始化且仍可接收注册的当前枢实例。"""
+        instance = cls._current_ref() if cls._current_ref is not None else None
+        if instance is None or instance._terminated:
+            return None
+        return instance
+
     async def initialize(self) -> None:
         await self.store.open()
         self._lease_task = asyncio.create_task(self._lease_supervisor())
+        OrchestrationHubPlugin._current_ref = weakref.ref(self)
         logger.info("[orchestration-hub] v%s loaded; pages=%s", __version__, self.page_registered)
 
     async def _lease_supervisor(self) -> None:
@@ -99,4 +111,11 @@ class OrchestrationHubPlugin(Star):
         self.invocation.clear()
         await self.store.append_audit({"action": "terminate", "result": "ok", "revision": self.registry.revision})
         await self.store.close()
+        current = (
+            OrchestrationHubPlugin._current_ref()
+            if OrchestrationHubPlugin._current_ref is not None
+            else None
+        )
+        if current is self:
+            OrchestrationHubPlugin._current_ref = None
         logger.info("[orchestration-hub] terminated")

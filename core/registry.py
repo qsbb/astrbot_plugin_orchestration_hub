@@ -149,6 +149,20 @@ class ServiceRegistry:
             await asyncio.sleep(0.01)
         return all(item.inflight == 0 for item in await self.snapshots())
 
+    async def wait_for_token_idle(
+        self, token: RegistrationToken, timeout_seconds: float
+    ) -> bool:
+        """等待指定服务实例完成调用，不阻塞其他提供者。"""
+        deadline = time.monotonic() + max(0, timeout_seconds)
+        while time.monotonic() < deadline:
+            async with self._lock:
+                entry = self._find_token_locked(token)
+                if entry.inflight == 0:
+                    return True
+            await asyncio.sleep(0.01)
+        async with self._lock:
+            return self._find_token_locked(token).inflight == 0
+
     async def clear(self) -> None:
         async with self._lock:
             for entries in self._entries.values():
