@@ -1,13 +1,36 @@
-let bridge;
+let bridge = null;
 
-async function resolveBridge() {
-  if (window.astrbot?.plugin?.page) return window.astrbot.plugin.page;
-  if (typeof window.waitForAstrBotBridge === "function") return window.waitForAstrBotBridge();
-  throw new Error("AstrBot Plugin Page bridge unavailable");
+async function resolveBridge(timeout = 3000) {
+  if (window.AstrBotPluginPage) return window.AstrBotPluginPage;
+  if (typeof window.waitForAstrBotBridge === "function") {
+    return window.waitForAstrBotBridge(timeout);
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeout) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    if (window.AstrBotPluginPage) return window.AstrBotPluginPage;
+  }
+
+  throw new Error("请从 AstrBot 插件管理页打开此页面");
 }
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
-const apiGet = (path) => bridge.request({method: "GET", path: `/astrbot_plugin_orchestration_hub/${path}`});
+
+function parseJsonResponse(value) {
+  const data = typeof value === "string" ? JSON.parse(value) : value;
+  if (data?.success === false) {
+    throw new Error(data.error || data.detail || "请求失败");
+  }
+  return data?.data ?? data;
+}
+
+async function apiGet(name) {
+  if (!bridge || typeof bridge.apiGet !== "function") {
+    throw new Error("AstrBot 页面通信接口尚未就绪");
+  }
+  return parseJsonResponse(await bridge.apiGet(name));
+}
 
 function renderServices(items) {
   document.getElementById("service-list").innerHTML = items.length ? items.map((item) => `<article class="item"><strong>${escapeHtml(item.service)}</strong> <code>${escapeHtml(item.version)}</code><div class="muted">${escapeHtml(item.provider_plugin)} · ${escapeHtml(item.state)} · ${escapeHtml(item.operations.join(", "))}</div></article>`).join("") : '<p class="muted">暂无已注册服务</p>';
@@ -29,7 +52,7 @@ async function load() {
 
 async function init() {
   bridge = await resolveBridge();
-  await bridge.ready();
+  if (typeof bridge.ready === "function") await bridge.ready();
   document.getElementById("refresh").addEventListener("click", () => load().catch(showError));
   await load();
 }
