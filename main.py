@@ -16,7 +16,7 @@ from .core import InvocationEngine, PolicyEngine, ServiceRegistry, ServiceResolv
 from .pages_manager import PagesManager
 
 PLUGIN_ID = "astrbot_plugin_orchestration_hub"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 @register(PLUGIN_ID, "Justice-ocr", "凝心溯溪系列服务中枢模块：同进程服务注册、发现与异步调用", __version__)

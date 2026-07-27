@@ -6,7 +6,7 @@
 
 ## 当前版本
 
-- 插件版本：`0.1.0`
+- 插件版本：`0.1.1`
 - AstrBot 兼容范围：`>=4.16,<5`
 - 展示名：`凝心溯溪-枢`
 - 仓库：https://github.com/qsbb/astrbot_plugin_orchestration_hub
