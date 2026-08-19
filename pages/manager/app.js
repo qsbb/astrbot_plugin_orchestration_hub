@@ -1,4 +1,17 @@
 let bridge = null;
+let eventsBound = false;
+let loadPromise = null;
+let connectionAttempt = 0;
+
+function withTimeout(promise, timeout, code) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(code)), timeout);
+    }),
+  ]).finally(() => window.clearTimeout(timer));
+}
 
 async function resolveBridge(timeout = 3000) {
   if (window.AstrBotPluginPage) return window.AstrBotPluginPage;
@@ -41,24 +54,60 @@ function renderCalls(items) {
 }
 
 async function load() {
+  if (!bridge) throw new Error("AstrBot 页面通信接口尚未就绪");
+  if (loadPromise) return loadPromise;
+  const refresh = document.getElementById("refresh");
+  refresh.disabled = true;
+  refresh.setAttribute("aria-busy", "true");
   document.getElementById("error").textContent = "";
-  const [overview, services, telemetry] = await Promise.all([apiGet("overview"), apiGet("services"), apiGet("telemetry")]);
-  document.getElementById("services").textContent = overview.services;
-  document.getElementById("instances").textContent = overview.instances;
-  document.getElementById("revision").textContent = overview.revision;
-  renderServices(services.services || []);
-  renderCalls(telemetry.recent || []);
+  loadPromise = Promise.all([
+    withTimeout(apiGet("overview"), 8000, "读取总览超时"),
+    withTimeout(apiGet("services"), 8000, "读取服务列表超时"),
+    withTimeout(apiGet("telemetry"), 8000, "读取近期调用超时"),
+  ]).then(([overview, services, telemetry]) => {
+    document.getElementById("services").textContent = overview.services;
+    document.getElementById("instances").textContent = overview.instances;
+    document.getElementById("revision").textContent = overview.revision;
+    renderServices(services.services || []);
+    renderCalls(telemetry.recent || []);
+    document.getElementById("startup-error").hidden = true;
+    document.getElementById("startup-error").textContent = "";
+  }).finally(() => {
+    loadPromise = null;
+    refresh.disabled = false;
+    refresh.removeAttribute("aria-busy");
+  });
+  return loadPromise;
 }
 
-async function init() {
-  bridge = await resolveBridge();
-  if (typeof bridge.ready === "function") await bridge.ready();
-  document.getElementById("refresh").addEventListener("click", () => load().catch(showError));
+function bindEvents() {
+  if (eventsBound) return;
+  eventsBound = true;
+  document.getElementById("refresh").addEventListener("click", () => connectAndLoad().catch(showError));
+}
+
+async function connectAndLoad() {
+  const attempt = ++connectionAttempt;
+  if (!bridge) bridge = await resolveBridge();
+  if (typeof bridge.ready === "function") {
+    await withTimeout(bridge.ready(), 5000, "AstrBot 页面通信初始化超时，请点击刷新重试");
+  }
+  if (attempt !== connectionAttempt) return;
+  document.getElementById("startup-error").hidden = true;
   await load();
 }
 
+async function init() {
+  bindEvents();
+  await connectAndLoad();
+}
+
 function showError(error) {
-  document.getElementById("error").textContent = error?.message || String(error);
+  const message = error?.message || String(error);
+  const startup = document.getElementById("startup-error");
+  startup.textContent = message;
+  startup.hidden = false;
+  document.getElementById("error").textContent = message;
 }
 
 init().catch(showError);

@@ -83,5 +83,22 @@ def test_page_assets_are_self_contained_and_bridge_first():
     js = (root / "app.js").read_text(encoding="utf-8")
     assert "bridge-sdk.js" in html and "./app.js" in html
     assert html.index("bridge-sdk.js") < html.index("./app.js")
-    assert "await bridge.ready()" in js
+    assert "await withTimeout(bridge.ready()" in js
     assert "Promise.all" in js
+    assert "function bindEvents()" in js
+    assert js.index("bindEvents();") < js.index("await connectAndLoad();")
+    assert 'addEventListener("click", () => connectAndLoad().catch(showError))' in js
+    assert "let connectionAttempt = 0;" in js
+    assert "if (attempt !== connectionAttempt) return;" in js
+    assert 'document.getElementById("startup-error").textContent = "";' in js
+    assert "读取总览超时" in js
+    assert 'id="startup-error"' in html
+
+
+def test_page_motion_is_bounded_and_accessible():
+    root = Path(__file__).resolve().parents[1] / "pages" / "manager"
+    css = (root / "style.css").read_text(encoding="utf-8")
+    assert "transition:all" not in css.replace(" ", "")
+    assert "button:active:not(:disabled)" in css
+    assert "@media (hover:hover) and (pointer:fine)" in css
+    assert "prefers-reduced-motion:reduce" in css
