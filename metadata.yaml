@@ -3,7 +3,7 @@ display_name: 凝心溯溪-枢
 short_desc: 凝心溯溪系列服务中枢模块：提供同进程服务注册、发现与异步调用
 desc: >
   凝心溯溪系列服务中枢模块：以显式、可版本化契约提供同一 AstrBot 进程内的服务注册、发现、异步调用、超时和基础调用摘要。
-version: 0.2.0
+version: 0.2.1
 author: Justice-ocr
 astrbot_version: ">=4.16,<5"
 repo: "https://github.com/qsbb/astrbot_plugin_orchestration_hub"
