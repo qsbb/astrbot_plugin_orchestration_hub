@@ -1,4 +1,4 @@
-# 凝心溯溪-枢（astrbot_plugin_orchestration_hub）
+# 枢（astrbot_plugin_orchestration_hub）
 
 凝心溯溪系列服务中枢模块：为同一 AstrBot 进程内的插件提供显式、可版本化的能力注册、服务发现、调用治理、事件传递与任务编排基础设施。
 
@@ -8,7 +8,7 @@
 
 - 插件版本：`0.1.1`
 - AstrBot 兼容范围：`>=4.16,<5`
-- 展示名：`凝心溯溪-枢`
+- 展示名：`枢`
 - 仓库：https://github.com/qsbb/astrbot_plugin_orchestration_hub
 
 ## 第一阶段能力

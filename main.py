@@ -1,4 +1,4 @@
-"""凝心溯溪-枢：AstrBot 生命周期装配入口。"""
+"""枢：AstrBot 生命周期装配入口。"""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from .core import (
 from .pages_manager import PagesManager
 
 PLUGIN_ID = "astrbot_plugin_orchestration_hub"
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 
 @register(
@@ -112,7 +112,7 @@ class OrchestrationHubPlugin(Star):
 
     def _disabled_notice(self) -> str | None:
         return (
-            "凝心溯溪-枢 已被配置禁用。" if not self._config("ENABLED", True) else None
+            "枢 已被配置禁用。" if not self._config("ENABLED", True) else None
         )
 
     def series_control_contract(self):
@@ -162,7 +162,7 @@ class OrchestrationHubPlugin(Star):
             return
         snapshots = await self.registry.snapshots()
         yield event.plain_result(
-            f"凝心溯溪-枢\n服务: {len({item.descriptor.service for item in snapshots})}\n实例: {len(snapshots)}\nrevision: {self.registry.revision}\nPages: {'可用' if self.page_registered else '降级'}"
+            f"枢\n服务: {len({item.descriptor.service for item in snapshots})}\n实例: {len(snapshots)}\nrevision: {self.registry.revision}\nPages: {'可用' if self.page_registered else '降级'}"
         )
 
     @hub_group.command("services")

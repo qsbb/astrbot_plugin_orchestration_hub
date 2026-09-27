@@ -68,7 +68,7 @@ def contract(plugin):
         "version": "1.0",
         "series_id": "ningxin_suxi",
         "plugin_id": "astrbot_plugin_orchestration_hub",
-        "plugin_name": "凝心溯溪-枢",
+        "plugin_name": "枢",
         "capabilities": [
             "read_schema",
             "read_snapshot",
